@@ -1,253 +1,590 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HSK 3 第20课 - 生词 (Yangi so'zlar)</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* 3D 翻转卡片特效 */
-        .perspective-1000 {
-            perspective: 1000px;
-        }
-        .preserve-3d {
-            transform-style: preserve-3d;
-        }
-        .backface-hidden {
-            backface-visibility: hidden;
-        }
-        .rotate-y-180 {
-            transform: rotateY(180deg);
-        }
-        .card-inner {
-            transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
-        }
-        .flipped {
-            transform: rotateY(180deg);
-        }
-        
-        /* 隐藏滚动条 */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1; 
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1; 
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8; 
-        }
-    </style>
-</head>
-<body class="bg-gray-50 min-h-screen flex flex-col font-sans text-gray-800">
+import React, { useState, useEffect } from 'react';
 
-    <!-- 顶部标题区 -->
-    <header class="bg-white shadow-sm border-b border-gray-200 py-6 text-center">
-        <div class="max-w-4xl mx-auto px-4">
-            <h1 class="text-3xl font-extrabold text-blue-900 mb-2">HSK 3 - Lesson 20: 生词 (Yangi so'zlar)</h1>
-            <h2 class="text-lg font-medium text-gray-500">Dilfuza Kāng lǎo shī bilan xitoy tilini o'rganmiz</h2>
+// --- DATA ---
+
+const vocabList = [
+  { id: 1, hanzi: "照相机", pinyin: "zhàoxiàngjī", uz: "Fotoapparat", ru: "Фотоаппарат", en: "Camera" },
+  { id: 2, hanzi: "被", pinyin: "bèi", uz: "Majhul nisbat (tomonidan)", ru: "Кем-то (пассивный залог)", en: "By (passive voice marker)" },
+  { id: 3, hanzi: "难过", pinyin: "nánguò", uz: "G'am-tashvish, xafa", ru: "Грустный, опечаленный", en: "Sad, grieved" },
+  { id: 4, hanzi: "东", pinyin: "dōng", uz: "Sharq", ru: "Восток", en: "East" },
+  { id: 5, hanzi: "信用卡", pinyin: "xìnyòngkă", uz: "Kredit kartasi", ru: "Кредитная карта", en: "Credit card" },
+  { id: 6, hanzi: "关心", pinyin: "guānxīn", uz: "G'amxo'rlik qilmoq", ru: "Заботиться", en: "To care for" },
+  { id: 7, hanzi: "只有...才...", pinyin: "zhǐyǒu... cái...", uz: "Faqatgina... shundagina", ru: "Только... тогда", en: "Only... then" },
+  { id: 8, hanzi: "成绩", pinyin: "chéngjì", uz: "Baho, natija", ru: "Оценка, результат", en: "Grade, achievement" },
+  { id: 9, hanzi: "碗", pinyin: "wăn", uz: "Kosa", ru: "Миска, пиала", en: "Bowl" },
+  { id: 10, hanzi: "分", pinyin: "fēn", uz: "Ajratmoq", ru: "Разделять, различать", en: "To distinguish, to separate" },
+  { id: 11, hanzi: "解决", pinyin: "jiějué", uz: "Hal qilmoq", ru: "Решать (проблему)", en: "To solve" },
+  { id: 12, hanzi: "试", pinyin: "shì", uz: "Urinmoq, harakat qilmoq", ru: "Пробовать", en: "To try" },
+  { id: 13, hanzi: "真正", pinyin: "zhēnzhèng", uz: "Haqiqiy, asl", ru: "Настоящий, истинный", en: "Truly, real" },
+  { id: 14, hanzi: "多么", pinyin: "duōme", uz: "Juda, buncha", ru: "Как, насколько", en: "How, what" },
+  { id: 15, hanzi: "影响", pinyin: "yǐngxiǎng", uz: "Ta'sir qilmoq", ru: "Влиять", en: "To influence" }
+];
+
+const dialogues = [
+  {
+    title: "1. 在休息室 (Dam olish xonasida)",
+    lines: [
+      { speaker: "小丽", hanzi: "我的照相机被谁拿走了？怎么找不到了？", pinyin: "Wǒ de zhàoxiàngjī bèi shéi ná zǒu le? Zěnme zhǎo bu dào le?", uz: "Mening fotoapparatimni kim oldi? Nega topolmayapman?", ru: "Кто взял мой фотоаппарат? Почему я не могу его найти?", en: "Who took my camera? Why can't I find it?" },
+      { speaker: "同事", hanzi: "你再找找。是不是没带来？", pinyin: "Nǐ zài zhǎo zhao. Shì bu shì méi dài lái?", uz: "Yana qidirib ko'r. Olib kelmaganmisan?", ru: "Поищи еще. Может, ты его не принесла?", en: "Look again. Did you not bring it?" },
+      { speaker: "小丽", hanzi: "我找了，没找到啊。", pinyin: "Wǒ zhǎo le, méi zhǎo dào a.", uz: "Qidirdim, topolmadim.", ru: "Я искала, не нашла.", en: "I looked, couldn't find it." },
+      { speaker: "同事", hanzi: "别难过，再买一个吧，公司东门外不就有一个大商场吗？", pinyin: "Bié nánguò, zài mǎi yí ge ba, gōngsī dōngmén wài bú jiù yǒu yí ge dà shāngchǎng ma?", uz: "Xafa bo'lma, yana bitta sotib ol, kompaniyaning sharqiy eshigi tashqarisida katta savdo markazi bor-ku?", ru: "Не расстраивайся, купи еще один, разве за восточными воротами компании нет большого торгового центра?", en: "Don't be sad, just buy another one. Isn't there a big mall outside the company's east gate?" },
+      { speaker: "小丽", hanzi: "但是我这个月信用卡里的钱已经花得差不多了。", pinyin: "Dànshì wǒ zhège yuè xìnyòngkǎ lǐ de qián yǐjīng huā de chàbuduō le.", uz: "Lekin bu oy kredit kartamdagi pulni deyarli sarflab bo'ldim.", ru: "Но в этом месяце деньги на моей кредитной карте почти закончились.", en: "But the money on my credit card this month is almost completely spent." }
+    ]
+  },
+  {
+    title: "2. 在教室 (Sinfxonada)",
+    lines: [
+      { speaker: "小明", hanzi: "你怎么突然关心起体育来了？", pinyin: "Nǐ zěnme tūrán guānxīn qǐ tǐyù lái le?", uz: "Nega to'satdan sportga qiziqib qolding?", ru: "Почему ты вдруг заинтересовалась спортом?", en: "Why did you suddenly start caring about sports?" },
+      { speaker: "朋友", hanzi: "我的男朋友喜欢看足球比赛，我被他影响的。", pinyin: "Wǒ de nánpéngyou xǐhuan kàn zúqiú bǐsài, wǒ bèi tā yǐngxiǎng de.", uz: "Yigitim futbol o'yinlarini tomosha qilishni yaxshi ko'radi, uning menga ta'siri o'tdi.", ru: "Моему парню нравится смотреть футбольные матчи, я попала под его влияние.", en: "My boyfriend likes to watch football matches, I was influenced by him." },
+      { speaker: "小明", hanzi: "看来只有爱，才能让人有变化。", pinyin: "Kànlái zhǐyǒu ài, cái néng ràng rén yǒu biànhuà.", uz: "Aftidan, faqat sevgigina insonni o'zgartira olar ekan.", ru: "Кажется, только любовь может изменить человека.", en: "It seems that only love can change people." },
+      { speaker: "朋友", hanzi: "是啊，为了和他的爱好一样，我天天看球赛。", pinyin: "Shì a, wèile hé tā de àihào yíyàng, wǒ tiāntiān kàn qiúsài.", uz: "Shunday, uning qiziqishlari bilan bir xil bo'lish uchun men har kuni o'yinlarni tomosha qilaman.", ru: "Да, чтобы наши увлечения совпадали, я каждый день смотрю матчи.", en: "Yes, in order to have the same hobbies as him, I watch matches every day." },
+      { speaker: "小明", hanzi: "除了足球，他还影响你什么了？", pinyin: "Chúle zúqiú, tā hái yǐngxiǎng nǐ shénme le?", uz: "Futboldan tashqari, senga yana nima ta'sir qildi?", ru: "Кроме футбола, на что еще он повлиял?", en: "Besides football, what else has he influenced you in?" },
+      { speaker: "朋友", hanzi: "我最近天天上网玩儿游戏，我的成绩差极了。", pinyin: "Wǒ zuìjìn tiāntiān shàngwǎng wánr yóuxì, wǒ de chéngjì chà jí le.", uz: "So'nggi paytlarda men har kuni internetda o'yin o'ynayapman, baholarim juda yomon.", ru: "В последнее время я каждый день играю в онлайн-игры, мои оценки стали ужасными.", en: "Recently I play online games every day, my grades are extremely poor." }
+    ]
+  },
+  {
+    title: "3. 在饭馆 (Restoranda)",
+    lines: [
+      { speaker: "朋友", hanzi: "那个拿着碗吃饭的人是你哥哥吗？他和你长得真像。", pinyin: "Nàge názhe wǎn chīfàn de rén shì nǐ gēge ma? Tā hé nǐ zhǎng de zhēn xiàng.", uz: "Anavi kosa ushlab ovqatlanayotgan odam sening akangmi? U senga juda o'xshaydi.", ru: "Тот человек, который ест с миской в руках, твой старший брат? Он так похож на тебя.", en: "Is that person eating with a bowl your older brother? He looks so much like you." },
+      { speaker: "大卫", hanzi: "我们经常被别人认错。", pinyin: "Wǒmen jīngcháng bèi biérén rèncuò.", uz: "Odamlar bizni tez-tez adashtirib qo'yishadi.", ru: "Нас часто путают.", en: "We are often mistaken by others." },
+      { speaker: "朋友", hanzi: "只有你们的爸爸妈妈才能分出来哪个是哥哥，哪个是弟弟吧。", pinyin: "Zhǐyǒu nǐmen de bàba māma cái néng fēnchūlái nǎge shì gēge, nǎge shì dìdi ba.", uz: "Faqat ota-onangizgina qaysi biri aka, qaysi biri uka ekanligini ajrata olsalar kerak.", ru: "Только ваши папа и мама могут отличить, кто старший, а кто младший брат.", en: "Only your mom and dad can tell apart who is the older brother and who is the younger brother." },
+      { speaker: "大卫", hanzi: "除了父母以外，还有我们自己也能啊。", pinyin: "Chúle fùmǔ yǐwài, hái yǒu wǒmen zìjǐ yě néng a.", uz: "Ota-onamizdan tashqari, biz o'zimiz ham ajrata olamiz.", ru: "Кроме родителей, мы и сами можем.", en: "Besides our parents, we ourselves can too." },
+      { speaker: "朋友", hanzi: "你们两个除了长得像，还有什么相同的地方？", pinyin: "Nǐmen liǎng ge chúle zhǎng de xiàng, hái yǒu shénme xiāngtóng de dìfang?", uz: "Siz ikkingizning o'xshashlikdan tashqari yana qanday o'xshash tomonlaringiz bor?", ru: "У вас двоих, кроме внешнего сходства, что еще общего?", en: "Besides looking alike, what other similarities do you two have?" },
+      { speaker: "大卫", hanzi: "我们住在同一个楼、同一个房间……", pinyin: "Wǒmen zhù zài tóng yí ge lóu, tóng yí ge fángjiān...", uz: "Biz bitta binoda, bitta xonada yashaymiz...", ru: "Мы живем в одном здании, в одной комнате...", en: "We live in the same building, in the same room..." }
+    ]
+  },
+  {
+    title: "4. 课文 (Matn 4)",
+    lines: [
+      { speaker: "", hanzi: "年轻人遇到难题，常常很着急，不知道怎么办。", pinyin: "Niánqīng rén yùdào nántí, chángcháng hěn zháojí, bù zhīdào zěnme bàn.", uz: "Yoshlar qiyinchiliklarga duch kelganda, ko'pincha juda tashvishlanadilar va nima qilishni bilmaydilar.", ru: "Молодые люди, сталкиваясь с трудностями, часто очень волнуются и не знают, что делать.", en: "Young people, when encountering difficult problems, are often very anxious and don't know what to do." },
+      { speaker: "", hanzi: "其实，不同的问题有不同的解决办法。", pinyin: "Qíshí, bùtóng de wèntí yǒu bùtóng de jiějué bànfǎ.", uz: "Aslida, turli xil muammolarning o'ziga xos echimlari bor.", ru: "На самом деле, у разных проблем разные способы решения.", en: "Actually, different problems have different solutions." },
+      { speaker: "", hanzi: "有些问题看上去很难，但是做起来非常简单，所以得试着做做。", pinyin: "Yǒuxiē wèntí kàn shàngqù hěn nán, dànshì zuò qǐlái fēicháng jiǎndān, suǒyǐ děi shìzhe zuò zuo.", uz: "Ba'zi muammolar qiyin bo'lib tuyuladi, lekin amalda ularni qilish juda oson, shuning uchun ularni sinab ko'rish kerak.", ru: "Некоторые проблемы кажутся сложными, но на практике их решать очень просто, поэтому нужно пробовать.", en: "Some problems look very hard, but doing them is extremely simple, so you have to try doing them." },
+      { speaker: "", hanzi: "有些问题看上去虽然简单，但是解决起来难极了。", pinyin: "Yǒuxiē wèntí kàn shàngqù suīrán jiǎndān, dànshì jiějué qǐlái nán jí le.", uz: "Ba'zi muammolar garchi oson ko'rinsa ham, hal qilish juda qiyin.", ru: "Некоторые проблемы, хотя и кажутся простыми, но решить их крайне сложно.", en: "Some problems, although they look simple, are extremely difficult to solve." },
+      { speaker: "", hanzi: "所以只有真正做事情的时候，才能了解有多难。", pinyin: "Suǒyǐ zhǐyǒu zhēnzhèng zuò shìqing de shíhou, cái néng liǎojiě yǒu duō nán.", uz: "Shuning uchun, ishni haqiqatdan bajarishni boshlagandagina uning qanchalik qiyinligini tushunish mumkin.", ru: "Поэтому только когда действительно приступаешь к делу, можешь понять, насколько оно сложное.", en: "Therefore, only when you truly do things can you understand how difficult they are." },
+      { speaker: "", hanzi: "不过，我们一定要相信：多么难的问题，都会被解决的。", pinyin: "Búguò, wǒmen yídìng yào xiāngxìn: duōme nán de wèntí, dōu huì bèi jiějué de.", uz: "Biroq, biz qat'iy ishonishimiz kerak: muammo qanchalik qiyin bo'lmasin, u albatta hal qilinadi.", ru: "Тем не менее, мы обязательно должны верить: насколько бы сложной ни была проблема, она будет решена.", en: "However, we must certainly believe: no matter how difficult a problem is, it will be solved." }
+    ]
+  }
+];
+
+const grammarPoints = [
+  {
+    title: "1. “被”字句 / The Passive Sentence with “被”",
+    explanations: {
+      uz: "Xitoy tilida \"被\" (bèi) so'zi majhul nisbat gaplarni tuzishda ishlatiladi. Gap qurilishi: \"Ega + 被/叫/让 + To'ldiruvchi + Fe'l + Boshqa qismlar\". Ega - harakatni qabul qiluvchi obyekt, to'ldiruvchi - harakatni bajaruvchi shaxs.",
+      ru: "В китайском языке слово \"被\" используется для выражения пассивного залога. Структура: \"Подлежащее + 被/叫/让 + Дополнение + Глагол + Другие элементы\". Подлежащее — объект действия, дополнение — субъект.",
+      en: "In Chinese, \"被\" is used to express passive voice. Structure: \"Subject + 被/叫/让 + Object + Verb + Other elements\". The subject is the receiver of the action, the object is the doer."
+    },
+    examples: [
+      { hanzi: "我被他影响了。", pinyin: "Wǒ bèi tā yǐngxiǎng le.", tr_uz: "U menga ta'sir ko'rsatdi.", tr_ru: "Я попал под его влияние.", tr_en: "I was influenced by him." },
+      { hanzi: "帽子被刮跑了。", pinyin: "Màozi bèi guā pǎo le.", tr_uz: "Shlyapani shamol uchirib ketdi.", tr_ru: "Шляпу унесло ветром.", tr_en: "The hat was blown away." },
+      { hanzi: "蛋糕让弟弟吃完了。", pinyin: "Dàngāo ràng dìdi chī wán le.", tr_uz: "Tort uka tomonidan yeb qo'yildi.", tr_ru: "Торт был съеден младшим братом.", tr_en: "The cake was eaten by the younger brother." },
+      { hanzi: "我的照相机被谁拿走了？", pinyin: "Wǒ de zhàoxiàngjī bèi shéi ná zǒu le?", tr_uz: "Mening fotoapparatimni kim oldi?", tr_ru: "Кто взял мой фотоаппарат?", tr_en: "Who took my camera?" }
+    ]
+  },
+  {
+    title: "2. 只有...才... / Only if... then...",
+    explanations: {
+      uz: "\"只有...才...\" tuzilmasi yagona shartni ko'rsatish uchun ishlatiladi. \"只有\"dan so'ng shart, \"才\"dan so'ng shu shart asosida yuzaga keladigan natija aytiladi.",
+      ru: "Конструкция \"只有...才...\" используется для выражения единственного условия. После \"只有\" ставится условие, а после \"才\" — результат.",
+      en: "The \"只有...才...\" structure indicates the sole condition. The condition follows \"只有\", and the result follows \"才\"."
+    },
+    examples: [
+      { hanzi: "只有写完作业，才能看电视。", pinyin: "Zhǐyǒu xiě wán zuòyè, cái néng kàn diànshì.", tr_uz: "Faqat uy vazifasini tugatgandagina televizor ko'rish mumkin.", tr_ru: "Только закончив домашнее задание, можно смотреть телевизор.", tr_en: "Only after finishing homework can one watch TV." },
+      { hanzi: "只有妈妈做的饭，她才爱吃。", pinyin: "Zhǐyǒu māma zuò de fàn, tā cái ài chī.", tr_uz: "U faqat onasi tayyorlagan ovqatni yeyishni yaxshi ko'radi.", tr_ru: "Она любит есть только ту еду, которую готовит мама.", tr_en: "She only loves to eat the food made by mom." },
+      { hanzi: "只有爸爸妈妈才能分出来哪个是哥哥。", pinyin: "Zhǐyǒu bàba māma cái néng fēn chūlái nǎge shì gēge.", tr_uz: "Faqat ota-ona qaysi biri akaligini ajrata oladi.", tr_ru: "Только папа и мама могут отличить, кто старший брат.", tr_en: "Only mom and dad can tell apart who is the older brother." }
+    ]
+  }
+];
+
+const exercises = [
+  { pre: "你每个月花多少钱？你有几张", post: "？", options: ["信用卡", "成绩", "照相机", "只有"], answer: "信用卡" },
+  { pre: "这个地方真漂亮，你带", post: "了吗？", options: ["碗", "东", "照相机", "信用卡"], answer: "照相机" },
+  { pre: "别", post: "了，手机坏了就再买一个吧。", options: ["关心", "难过", "试", "多么"], answer: "难过" },
+  { pre: "我什么时候能知道这次考试的", post: "？", options: ["成绩", "信用卡", "问题", "试"], answer: "成绩" },
+  { pre: "今天的天气", post: "好啊！", options: ["非常", "多么", "真正", "影响"], answer: "多么" },
+  { pre: "你送给我几个漂亮的", post: "吧。", options: ["照相机", "碗", "东", "成绩"], answer: "碗" },
+  { pre: "他怎么又看篮球比赛了？", post: "看球赛，才能让他变得高兴。", options: ["只有", "如果", "虽然", "因为"], answer: "只有" },
+  { pre: "我的电脑又坏了，我", post: "一下，看看有什么问题。", options: ["解决", "试", "关心", "难过"], answer: "试" },
+  { pre: "你觉得周经理怎么样？非常好，很", post: "我们。", options: ["解决", "难过", "关心", "影响"], answer: "关心" },
+  { pre: "请问，去中国银行怎么走？一直往", post: "走。", options: ["东", "难过", "碗", "试"], answer: "东" }
+];
+
+const vocabTest = [
+  { q: "照相机", a: 0, options: ["Fotoapparat", "Kredit kartasi", "Kosa", "Sharq"], ru: "Фотоаппарат", en: "Camera" },
+  { q: "被", a: 2, options: ["Urinmoq", "Ajratmoq", "Majhul nisbat", "Sharq"], ru: "Кем-то (пассивный залог)", en: "By (passive voice)" },
+  { q: "难过", a: 1, options: ["Kredit kartasi", "G'am-tashvish, xafa", "Faqatgina", "Baho"], ru: "Грустный", en: "Sad" },
+  { q: "东", a: 1, options: ["Hal qilmoq", "Sharq", "G'am-tashvish", "Haqiqiy"], ru: "Восток", en: "East" },
+  { q: "信用卡", a: 2, options: ["Fotoapparat", "Kosa", "Kredit kartasi", "Baho"], ru: "Кредитная карта", en: "Credit card" },
+  { q: "关心", a: 0, options: ["G'amxo'rlik qilmoq", "Ta'sir qilmoq", "Urinmoq", "Ajratmoq"], ru: "Заботиться", en: "To care for" },
+  { q: "只有", a: 1, options: ["Hal qilmoq", "Faqatgina", "Haqiqiy", "Juda"], ru: "Только", en: "Only" },
+  { q: "成绩", a: 0, options: ["Baho, natija", "Kredit kartasi", "Kosa", "Sharq"], ru: "Оценка, результат", en: "Grade" },
+  { q: "碗", a: 2, options: ["Fotoapparat", "Kredit kartasi", "Kosa", "Sharq"], ru: "Миска", en: "Bowl" },
+  { q: "分", a: 1, options: ["Urinmoq", "Ajratmoq", "Ta'sir qilmoq", "Hal qilmoq"], ru: "Разделять", en: "To separate" },
+  { q: "解决", a: 1, options: ["G'amxo'rlik", "Hal qilmoq", "Haqiqiy", "Ajratmoq"], ru: "Решать", en: "To solve" },
+  { q: "试", a: 0, options: ["Urinmoq, harakat", "Sharq", "Faqatgina", "Juda"], ru: "Пробовать", en: "To try" },
+  { q: "真正", a: 2, options: ["G'am-tashvish", "Baho, natija", "Haqiqiy, asl", "Kosa"], ru: "Настоящий", en: "Truly" },
+  { q: "多么", a: 0, options: ["Juda, buncha", "Ta'sir qilmoq", "Hal qilmoq", "Ajratmoq"], ru: "Как, насколько", en: "How" },
+  { q: "影响", a: 3, options: ["G'amxo'rlik", "Kredit kartasi", "Fotoapparat", "Ta'sir qilmoq"], ru: "Влиять", en: "To influence" }
+];
+
+const grammarTest = [
+  { q: "我的自行车___小明骑走了。", options: ["把", "被", "只有", "才"], a: 1 },
+  { q: "___好好学习，才能考出好成绩。", options: ["因为", "所以", "只有", "虽然"], a: 2 },
+  { q: "衣服让大卫洗___。", options: ["完", "完了", "过了", "着了"], a: 1 },
+  { q: "___多听多说，才可能学好汉语。", options: ["连", "只有", "就", "被"], a: 1 },
+  { q: "钱包___谁拿走了？", options: ["被", "把", "使", "对"], a: 0 },
+  { q: "这件事已经被___了。", options: ["只有", "把", "解决", "才"], a: 2 },
+  { q: "___下雨天，他才不出门。", options: ["只有", "如果", "都", "还"], a: 0 },
+  { q: "我的电脑___弟弟用坏了。", options: ["把", "被", "为", "给"], a: 1 },
+  { q: "只有妈妈做的饭，他___喜欢吃。", options: ["如果", "只要", "才", "为了"], a: 2 },
+  { q: "那个问题没___解决。", options: ["被", "把", "让", "给"], a: 0 },
+  { q: "蛋糕___弟弟吃完了。", options: ["把", "让", "连", "才"], a: 1 },
+  { q: "___到过长城的人，才算是好汉。", options: ["只要", "只有", "因为", "所以"], a: 1 },
+  { q: "昨天买的面包___吃完了。", options: ["只有", "就", "已经把", "已经被"], a: 3 },
+  { q: "只有每天锻炼，身体___会健康。", options: ["才", "就", "把", "被"], a: 0 },
+  { q: "他___老师叫走了。", options: ["只有", "把", "被", "才"], a: 2 }
+];
+
+
+// --- UTILS & ICONS ---
+
+const playAudio = (text, e) => {
+  if (e) e.stopPropagation();
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+    const synth = window.speechSynthesis;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'zh-CN';
+    synth.speak(utterance);
+  }
+};
+
+const SvgIcons = {
+  Volume: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>,
+  Check: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><polyline points="20 6 9 17 4 12"></polyline></svg>,
+  Refresh: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>,
+  Star: () => <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-yellow-400"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+};
+
+
+// --- COMPONENTS ---
+
+const Flashcards = () => {
+  const [index, setIndex] = useState(0);
+  const [isFlipped, setIsFlipped] = useState(false);
+
+  const nextCard = () => { setIsFlipped(false); setIndex((prev) => (prev + 1) % vocabList.length); };
+  const prevCard = () => { setIsFlipped(false); setIndex((prev) => (prev - 1 + vocabList.length) % vocabList.length); };
+  const word = vocabList[index];
+
+  return (
+    <div className="flex flex-col items-center justify-center py-6 space-y-8 w-full">
+      <div 
+        className="relative w-80 h-[26rem] [perspective:1000px] cursor-pointer"
+        onClick={() => setIsFlipped(!isFlipped)}
+      >
+        <div className={`w-full h-full transition-transform duration-700 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
+          
+          {/* Front */}
+          <div className="absolute inset-0 bg-white border-4 border-indigo-100 rounded-3xl shadow-2xl flex flex-col items-center justify-center [backface-visibility:hidden]">
+             {/* Decor */}
+             <div className="absolute top-4 left-4 opacity-20"><SvgIcons.Star /></div>
+             <div className="absolute bottom-4 right-4 opacity-20"><SvgIcons.Star /></div>
+             
+             <h2 className="text-7xl font-extrabold text-gray-800 mb-8">{word.hanzi}</h2>
+             <button 
+              onClick={(e) => playAudio(word.hanzi, e)}
+              className="mt-6 bg-indigo-50 text-indigo-600 p-4 rounded-full hover:bg-indigo-100 transition shadow-sm border border-indigo-200"
+            >
+              <SvgIcons.Volume />
+            </button>
+          </div>
+
+          {/* Back */}
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 to-white border-4 border-indigo-200 rounded-3xl shadow-2xl flex flex-col items-center justify-center p-6 text-center [transform:rotateY(180deg)] [backface-visibility:hidden]">
+            <h2 className="text-4xl font-extrabold text-indigo-900 mb-2">{word.hanzi}</h2>
+            <p className="text-2xl text-indigo-500 mb-6 font-bold bg-indigo-100 px-4 py-1 rounded-full">{word.pinyin}</p>
+            
+            <div className="w-full space-y-3 text-left bg-white p-4 rounded-xl shadow-inner border border-indigo-50">
+              <p className="flex"><strong className="w-10 text-indigo-800">UZ:</strong> <span className="text-gray-700 font-medium">{word.uz}</span></p>
+              <p className="flex"><strong className="w-10 text-indigo-800">RU:</strong> <span className="text-gray-700 font-medium">{word.ru}</span></p>
+              <p className="flex"><strong className="w-10 text-indigo-800">EN:</strong> <span className="text-gray-700 font-medium">{word.en}</span></p>
+            </div>
+            
+            <button 
+              onClick={(e) => playAudio(word.hanzi, e)}
+              className="mt-6 bg-indigo-600 text-white p-4 rounded-full hover:bg-indigo-700 transition shadow-lg transform hover:scale-105"
+            >
+              <SvgIcons.Volume />
+            </button>
+          </div>
+
         </div>
-    </header>
+      </div>
+      
+      <div className="flex items-center space-x-6">
+        <button onClick={prevCard} className="px-8 py-3 bg-white border border-gray-200 text-gray-700 rounded-2xl hover:bg-gray-50 transition shadow-sm font-bold">Orqaga</button>
+        <span className="text-indigo-600 font-extrabold text-xl bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100">{index + 1} / {vocabList.length}</span>
+        <button onClick={nextCard} className="px-8 py-3 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition shadow-md font-bold">Keyingisi</button>
+      </div>
+    </div>
+  );
+};
 
-    <!-- 主要内容区 -->
-    <main class="flex-grow flex flex-col items-center py-10 px-4 w-full max-w-5xl mx-auto space-y-12">
-        
-        <!-- 闪卡部分 -->
-        <section class="flex flex-col items-center w-full">
-            <div class="flex justify-between items-center w-full max-w-sm mb-4">
-                <span id="card-counter" class="text-gray-500 font-bold">1 / 15</span>
-                <span class="text-sm text-blue-500 bg-blue-50 px-2 py-1 rounded font-medium">Bosing / Нажмите / Click</span>
-            </div>
-
-            <!-- 卡片容器 -->
-            <div class="perspective-1000 w-full max-w-sm h-96 cursor-pointer group" onclick="toggleFlip()">
-                <div id="flashcard" class="card-inner w-full h-full relative preserve-3d shadow-xl rounded-2xl">
-                    
-                    <!-- 正面 (汉字) -->
-                    <div class="absolute inset-0 bg-white border-2 border-blue-200 rounded-2xl flex flex-col items-center justify-center backface-hidden">
-                        <h2 id="card-hanzi" class="text-7xl font-bold text-gray-800">照相机</h2>
+const Dialogues = () => {
+  return (
+    <div className="max-w-4xl mx-auto py-6 space-y-12">
+      {dialogues.map((dlg, idx) => (
+        <div key={idx} className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+          <div className="bg-gradient-to-r from-indigo-600 to-blue-500 text-white p-5 flex justify-between items-center">
+            <h3 className="text-2xl font-bold flex items-center space-x-2">
+               <SvgIcons.Star /> <span>{dlg.title}</span>
+            </h3>
+            <button 
+              onClick={() => playAudio(dlg.lines.map(l => l.hanzi).join('。'), null)}
+              className="bg-white/20 hover:bg-white/30 p-3 rounded-full transition backdrop-blur-sm"
+            >
+              <SvgIcons.Volume />
+            </button>
+          </div>
+          <div className="divide-y divide-gray-100 p-2">
+            {dlg.lines.map((line, lIdx) => (
+              <div key={lIdx} className="p-4 hover:bg-indigo-50/50 transition rounded-xl m-1 group">
+                <div className="flex items-start">
+                  {line.speaker && <span className="font-extrabold text-indigo-700 w-20 shrink-0 mt-1">{line.speaker}</span>}
+                  <div className="space-y-2 flex-grow">
+                    <p className="text-2xl text-gray-900 font-medium">{line.hanzi}</p>
+                    <p className="text-md text-indigo-500 font-medium">{line.pinyin}</p>
+                    <div className="bg-gray-50 rounded-lg p-3 space-y-2 border border-gray-100 mt-3">
+                      <p className="text-sm"><span className="font-bold text-gray-400 mr-2">UZ:</span> <span className="text-gray-700">{line.uz}</span></p>
+                      <p className="text-sm"><span className="font-bold text-gray-400 mr-2">RU:</span> <span className="text-gray-700">{line.ru}</span></p>
+                      <p className="text-sm"><span className="font-bold text-gray-400 mr-2">EN:</span> <span className="text-gray-700">{line.en}</span></p>
                     </div>
-
-                    <!-- 背面 (拼音 + 翻译) -->
-                    <div class="absolute inset-0 bg-blue-50 border-2 border-blue-300 rounded-2xl flex flex-col items-center justify-center p-6 text-center rotate-y-180 backface-hidden">
-                        <h2 id="card-hanzi-back" class="text-4xl font-bold text-blue-900 mb-2">照相机</h2>
-                        <p id="card-pinyin" class="text-2xl text-blue-600 mb-6 font-medium">zhàoxiàngjī</p>
-                        
-                        <div class="space-y-3 text-gray-700 text-left w-full px-4 border-t border-blue-100 pt-4">
-                            <p><strong class="text-blue-800">UZ:</strong> <span id="card-uz">Fotoapparat</span></p>
-                            <p><strong class="text-blue-800">RU:</strong> <span id="card-ru">Фотоаппарат</span></p>
-                            <p><strong class="text-blue-800">EN:</strong> <span id="card-en">Camera</span></p>
-                        </div>
-                        
-                        <button onclick="playAudio(event)" class="mt-8 bg-blue-600 text-white p-4 rounded-full hover:bg-blue-700 transition shadow-lg flex items-center justify-center group-hover:scale-110">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
-                        </button>
-                    </div>
+                  </div>
+                  <button 
+                    onClick={() => playAudio(line.hanzi, null)}
+                    className="ml-4 text-gray-300 hover:text-indigo-600 transition p-2 rounded-full hover:bg-indigo-100 opacity-0 group-hover:opacity-100"
+                  >
+                    <SvgIcons.Volume />
+                  </button>
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const Grammar = () => {
+  return (
+    <div className="max-w-4xl mx-auto py-6 space-y-10">
+      {grammarPoints.map((gp, idx) => (
+        <div key={idx} className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden relative">
+          <div className="h-2 w-full bg-indigo-500"></div>
+          <div className="p-8">
+            <h3 className="text-3xl font-extrabold text-indigo-900 mb-6">{gp.title}</h3>
+            
+            <div className="space-y-4 bg-gradient-to-r from-indigo-50 to-blue-50 p-6 rounded-xl mb-8 border border-indigo-100/50">
+              <p className="flex"><span className="font-bold text-indigo-700 w-12">UZ:</span> <span className="text-gray-800">{gp.explanations.uz}</span></p>
+              <p className="flex"><span className="font-bold text-indigo-700 w-12">RU:</span> <span className="text-gray-800">{gp.explanations.ru}</span></p>
+              <p className="flex"><span className="font-bold text-indigo-700 w-12">EN:</span> <span className="text-gray-800">{gp.explanations.en}</span></p>
             </div>
 
-            <!-- 控制按钮 -->
-            <div class="flex space-x-6 mt-8 w-full max-w-sm justify-between">
-                <button onclick="prevCard()" class="flex-1 py-3 bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 transition shadow-sm font-bold text-lg">
-                    Orqaga
-                </button>
-                <button onclick="nextCard()" class="flex-1 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition shadow-sm font-bold text-lg">
-                    Keyingisi
-                </button>
+            <h4 className="font-bold text-gray-400 uppercase tracking-widest mb-4">Misollar (Примеры / Examples)</h4>
+            <div className="space-y-4">
+              {gp.examples.map((ex, eIdx) => (
+                <div key={eIdx} className="bg-white border border-gray-200 p-5 rounded-xl flex flex-col space-y-2 hover:shadow-md transition group">
+                  <div className="flex justify-between items-start">
+                     <div>
+                        <p className="text-2xl text-gray-900 font-bold mb-1">{ex.hanzi}</p>
+                        <p className="text-md text-indigo-500 font-medium mb-3">{ex.pinyin}</p>
+                     </div>
+                     <button onClick={() => playAudio(ex.hanzi, null)} className="text-indigo-200 hover:text-indigo-600 bg-indigo-50 hover:bg-indigo-100 p-3 rounded-full transition">
+                        <SvgIcons.Volume />
+                     </button>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded-lg text-sm text-gray-600 space-y-1">
+                     <p><strong>UZ:</strong> {ex.tr_uz}</p>
+                     <p><strong>RU:</strong> {ex.tr_ru}</p>
+                     <p><strong>EN:</strong> {ex.tr_en}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-        </section>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
 
-        <!-- 生词列表部分 -->
-        <section class="w-full max-w-4xl bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-            <div class="bg-gray-50 border-b border-gray-200 p-4">
-                <h3 class="text-xl font-bold text-gray-800">生词列表 (Lug'at ro'yxati)</h3>
+const FillInBlanks = () => {
+  const [answers, setAnswers] = useState(Array(exercises.length).fill(''));
+  const [checked, setChecked] = useState(false);
+
+  const handleSelect = (index, val) => {
+    const newAnswers = [...answers];
+    newAnswers[index] = val;
+    setAnswers(newAnswers);
+    setChecked(false);
+  };
+
+  const getScore = () => answers.filter((a, i) => a === exercises[i].answer).length;
+
+  return (
+    <div className="max-w-3xl mx-auto py-6">
+      <div className="bg-white p-8 rounded-3xl shadow-xl space-y-8 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-bl-full -z-0"></div>
+        
+        <h3 className="text-2xl font-bold text-gray-800 relative z-10">So'zlarni o'rniga qo'ying</h3>
+        
+        <div className="flex flex-wrap gap-3 relative z-10">
+          {["成绩", "多么", "照相机", "信用卡", "难过", "试", "只有", "碗", "东", "关心"].map(w => (
+            <span key={w} className="bg-indigo-100 text-indigo-800 px-4 py-2 rounded-lg font-bold text-lg shadow-sm border border-indigo-200">{w}</span>
+          ))}
+        </div>
+        
+        <div className="space-y-6 relative z-10">
+          {exercises.map((ex, i) => (
+            <div key={i} className="flex items-center flex-wrap gap-2 text-xl bg-gray-50 p-4 rounded-xl border border-gray-100 hover:border-indigo-200 transition">
+              <span className="font-extrabold text-indigo-300 w-8">{i + 1}.</span>
+              <span className="text-gray-700">{ex.pre}</span>
+              <select 
+                className={`border-b-4 border-t-0 border-x-0 bg-transparent px-2 py-1 font-bold text-indigo-700 outline-none cursor-pointer appearance-none text-center min-w-[100px] transition-colors
+                  ${checked ? (answers[i] === ex.answer ? 'border-green-500 text-green-700 bg-green-50' : 'border-red-500 text-red-700 bg-red-50') : 'border-indigo-300 hover:border-indigo-500'}`}
+                value={answers[i]}
+                onChange={(e) => handleSelect(i, e.target.value)}
+              >
+                <option value="" disabled>___</option>
+                {ex.options.map((opt, oIdx) => (
+                  <option key={oIdx} value={opt} className="text-black">{opt}</option>
+                ))}
+              </select>
+              <span className="text-gray-700">{ex.post}</span>
+              {checked && answers[i] === ex.answer && <span className="text-green-500 ml-auto"><SvgIcons.Check /></span>}
             </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-gray-100 text-gray-600 text-sm uppercase">
-                            <th class="p-4 font-bold border-b">№</th>
-                            <th class="p-4 font-bold border-b">汉字</th>
-                            <th class="p-4 font-bold border-b">Pinyin</th>
-                            <th class="p-4 font-bold border-b">O'zbekcha</th>
-                            <th class="p-4 font-bold border-b">Русский</th>
-                            <th class="p-4 font-bold border-b">English</th>
-                            <th class="p-4 font-bold border-b text-center">发音</th>
-                        </tr>
-                    </thead>
-                    <tbody id="vocab-table-body" class="divide-y divide-gray-100">
-                        <!-- JS 动态填充 -->
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    </main>
+          ))}
+        </div>
 
-    <!-- 页脚 -->
-    <footer class="bg-white py-6 mt-auto border-t border-gray-200 text-center text-gray-500 text-sm font-medium">
-        HSK 3 Standard Course - Lesson 20 <br/>
-        &copy; 2026 Dilfuza Kāng lǎo shī (telegram@diffila)
-    </footer>
+        {checked && (
+          <div className="p-6 bg-green-50 border-l-4 border-green-500 text-green-800 rounded-r-xl font-bold text-xl flex items-center justify-between shadow-sm">
+            <span>Natija (Result):</span>
+            <span className="text-3xl">{getScore()} / {exercises.length}</span>
+          </div>
+        )}
 
-    <script>
-        // 生词数据
-        const vocabList = [
-            { id: 1, hanzi: "照相机", pinyin: "zhàoxiàngjī", uz: "Fotoapparat", ru: "Фотоаппарат", en: "Camera" },
-            { id: 2, hanzi: "被", pinyin: "bèi", uz: "Majhul nisbat (tomonidan)", ru: "Кем-то (пассивный залог)", en: "By (passive voice marker)" },
-            { id: 3, hanzi: "难过", pinyin: "nánguò", uz: "G'am-tashvish, xafa", ru: "Грустный, опечаленный", en: "Sad, grieved" },
-            { id: 4, hanzi: "东", pinyin: "dōng", uz: "Sharq", ru: "Восток", en: "East" },
-            { id: 5, hanzi: "信用卡", pinyin: "xìnyòngkă", uz: "Kredit kartasi", ru: "Кредитная карта", en: "Credit card" },
-            { id: 6, hanzi: "关心", pinyin: "guānxīn", uz: "G'amxo'rlik qilmoq", ru: "Заботиться", en: "To care for" },
-            { id: 7, hanzi: "只有...才...", pinyin: "zhǐyǒu... cái...", uz: "Faqatgina... shundagina", ru: "Только... тогда", en: "Only... then" },
-            { id: 8, hanzi: "成绩", pinyin: "chéngjì", uz: "Baho, natija", ru: "Оценка, результат", en: "Grade, achievement" },
-            { id: 9, hanzi: "碗", pinyin: "wăn", uz: "Kosa", ru: "Миска, пиала", en: "Bowl" },
-            { id: 10, hanzi: "分", pinyin: "fēn", uz: "Ajratmoq", ru: "Разделять, различать", en: "To distinguish, to separate" },
-            { id: 11, hanzi: "解决", pinyin: "jiějué", uz: "Hal qilmoq", ru: "Решать (проблему)", en: "To solve" },
-            { id: 12, hanzi: "试", pinyin: "shì", uz: "Urinmoq, harakat qilmoq", ru: "Пробовать", en: "To try" },
-            { id: 13, hanzi: "真正", pinyin: "zhēnzhèng", uz: "Haqiqiy, asl", ru: "Настоящий, истинный", en: "Truly, real" },
-            { id: 14, hanzi: "多么", pinyin: "duōme", uz: "Juda, buncha", ru: "Как, насколько", en: "How, what" },
-            { id: 15, hanzi: "影响", pinyin: "yǐngxiǎng", uz: "Ta'sir qilmoq", ru: "Влиять", en: "To influence" }
-        ];
+        <button 
+          onClick={() => setChecked(true)}
+          className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold text-xl hover:bg-indigo-700 shadow-lg transform transition active:scale-95"
+        >
+          Tekshirish (Check)
+        </button>
+      </div>
+    </div>
+  );
+};
 
-        let currentIndex = 0;
-        const flashcard = document.getElementById('flashcard');
+const QuizApp = ({ title, questions, instructions, isVocab }) => {
+  const [currentQ, setCurrentQ] = useState(0);
+  const [score, setScore] = useState(0);
+  const [showResult, setShowResult] = useState(false);
+  const [selected, setSelected] = useState(null);
 
-        // 发音功能
-        function playAudio(event, textToSpeak = null) {
-            if (event) event.stopPropagation(); // 阻止卡片翻转
-            
-            const text = textToSpeak || vocabList[currentIndex].hanzi;
-            
-            if ('speechSynthesis' in window) {
-                // 先取消当前正在播放的语音
-                window.speechSynthesis.cancel();
-                
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'zh-CN'; // 设置为中文
-                utterance.rate = 0.9; // 稍微放慢一点语速，适合学习者
-                
-                window.speechSynthesis.speak(utterance);
-            } else {
-                alert("Sizning brauzeringiz ovozli o'qishni qo'llab-quvvatlamaydi. / Ваш браузер не поддерживает синтез речи.");
-            }
-        }
+  const handleAnswer = (idx) => {
+    if(selected !== null) return;
+    setSelected(idx);
+    if(idx === questions[currentQ].a) setScore(s => s + 1);
+    
+    setTimeout(() => {
+      if(currentQ < questions.length - 1) {
+        setCurrentQ(q => q + 1);
+        setSelected(null);
+      } else {
+        setShowResult(true);
+      }
+    }, isVocab ? 2500 : 1200); // Wait longer for vocab to read translations
+  };
 
-        // 翻转卡片
-        function toggleFlip() {
-            flashcard.classList.toggle('flipped');
-        }
+  const restart = () => {
+    setCurrentQ(0);
+    setScore(0);
+    setShowResult(false);
+    setSelected(null);
+  };
 
-        // 更新卡片内容
-        function updateCard() {
-            const word = vocabList[currentIndex];
-            
-            document.getElementById('card-hanzi').innerText = word.hanzi;
-            document.getElementById('card-hanzi-back').innerText = word.hanzi;
-            document.getElementById('card-pinyin').innerText = word.pinyin;
-            document.getElementById('card-uz').innerText = word.uz;
-            document.getElementById('card-ru').innerText = word.ru;
-            document.getElementById('card-en').innerText = word.en;
-            
-            document.getElementById('card-counter').innerText = `${currentIndex + 1} / ${vocabList.length}`;
-            
-            // 每次切换重置为正面
-            flashcard.classList.remove('flipped');
-        }
+  if(showResult) {
+    return (
+      <div className="bg-white p-10 rounded-3xl shadow-xl text-center max-w-xl mx-auto border-4 border-indigo-50">
+        <h2 className="text-4xl font-extrabold text-indigo-900 mb-6">{title} Tugadi!</h2>
+        <div className="text-8xl mb-8 animate-bounce">{score >= 10 ? '🏆' : '💪'}</div>
+        <p className="text-2xl text-gray-600 mb-8 font-medium">Natija: <span className="font-extrabold text-indigo-600 text-5xl mx-2">{score}</span> / {questions.length}</p>
+        <button onClick={restart} className="flex items-center justify-center w-full space-x-3 bg-indigo-600 text-white px-8 py-4 rounded-xl hover:bg-indigo-700 transition font-bold text-xl shadow-lg">
+          <SvgIcons.Refresh />
+          <span>Qayta topshirish</span>
+        </button>
+      </div>
+    );
+  }
 
-        function nextCard() {
-            currentIndex = (currentIndex + 1) % vocabList.length;
-            updateCard();
-        }
+  const q = questions[currentQ];
 
-        function prevCard() {
-            currentIndex = (currentIndex - 1 + vocabList.length) % vocabList.length;
-            updateCard();
-        }
+  return (
+    <div className="bg-white p-8 md:p-12 rounded-3xl shadow-2xl max-w-3xl mx-auto border border-gray-100">
+      <div className="flex justify-between items-center mb-8 border-b pb-4">
+        <span className="font-extrabold text-indigo-800 text-xl">{title}</span>
+        <div className="bg-indigo-100 text-indigo-800 px-4 py-1 rounded-full font-bold">
+          Savol: {currentQ + 1} / {questions.length}
+        </div>
+      </div>
+      
+      {instructions && <p className="text-gray-500 mb-6 text-center text-lg italic">{instructions}</p>}
+      
+      <div className="bg-indigo-50 rounded-2xl p-10 mb-10 text-center border-2 border-indigo-100 shadow-inner relative">
+         <button onClick={() => playAudio(q.q.replace(/___/g, ''), null)} className="absolute top-4 right-4 text-indigo-300 hover:text-indigo-600">
+            <SvgIcons.Volume />
+         </button>
+         <h3 className="text-6xl font-extrabold text-indigo-900">{q.q}</h3>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {q.options.map((opt, idx) => {
+          let btnClass = "bg-white border-2 border-gray-200 text-gray-700 hover:border-indigo-500 hover:shadow-md";
+          if(selected !== null) {
+            if(idx === q.a) btnClass = "bg-green-500 border-green-600 text-white shadow-lg scale-105 z-10";
+            else if(idx === selected) btnClass = "bg-red-500 border-red-600 text-white shadow-inner opacity-80";
+            else btnClass = "bg-gray-100 border-gray-200 text-gray-400 opacity-50";
+          }
+          return (
+            <button 
+              key={idx} 
+              onClick={() => handleAnswer(idx)}
+              disabled={selected !== null}
+              className={`p-6 rounded-2xl text-xl font-bold transition-all duration-300 transform ${btnClass}`}
+            >
+              {opt}
+            </button>
+          );
+        })}
+      </div>
 
-        // 渲染生词列表表格
-        function renderTable() {
-            const tbody = document.getElementById('vocab-table-body');
-            tbody.innerHTML = '';
-            
-            vocabList.forEach((word, index) => {
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-blue-50 transition cursor-default";
-                
-                tr.innerHTML = `
-                    <td class="p-4 border-b text-gray-500">${index + 1}</td>
-                    <td class="p-4 border-b font-bold text-xl text-gray-800">${word.hanzi}</td>
-                    <td class="p-4 border-b text-blue-600">${word.pinyin}</td>
-                    <td class="p-4 border-b text-gray-700">${word.uz}</td>
-                    <td class="p-4 border-b text-gray-700">${word.ru}</td>
-                    <td class="p-4 border-b text-gray-700">${word.en}</td>
-                    <td class="p-4 border-b text-center">
-                        <button onclick="playAudio(event, '${word.hanzi}')" class="text-blue-500 hover:text-blue-700 hover:bg-blue-100 p-2 rounded-full transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
+      {/* Translations reveal for Vocab Test */}
+      {isVocab && selected !== null && (
+        <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-xl text-center animate-pulse">
+           <p className="text-blue-800 font-bold mb-1">RU: {q.ru}</p>
+           <p className="text-blue-800 font-bold">EN: {q.en}</p>
+        </div>
+      )}
+    </div>
+  );
+};
 
-        // 初始化
-        window.onload = () => {
-            updateCard();
-            renderTable();
-        };
+const TestsWrapper = () => {
+  const [activeTestTab, setActiveTestTab] = useState('vocab');
 
-        // 键盘左右键控制
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowRight') nextCard();
-            if (e.key === 'ArrowLeft') prevCard();
-            if (e.key === ' ' || e.key === 'Enter') {
-                e.preventDefault();
-                toggleFlip();
-            }
-        });
-    </script>
-</body>
-</html>
+  return (
+    <div className="py-6">
+      <div className="flex justify-center space-x-6 mb-12">
+        <button 
+          onClick={() => setActiveTestTab('vocab')}
+          className={`px-8 py-4 rounded-2xl font-extrabold text-lg transition-all duration-300 ${activeTestTab === 'vocab' ? 'bg-indigo-600 text-white shadow-xl scale-105' : 'bg-white text-gray-500 hover:bg-gray-50 shadow border border-gray-200'}`}
+        >
+          📝 Lug'at Testi
+        </button>
+        <button 
+          onClick={() => setActiveTestTab('grammar')}
+          className={`px-8 py-4 rounded-2xl font-extrabold text-lg transition-all duration-300 ${activeTestTab === 'grammar' ? 'bg-indigo-600 text-white shadow-xl scale-105' : 'bg-white text-gray-500 hover:bg-gray-50 shadow border border-gray-200'}`}
+        >
+          🧩 Grammatika Testi
+        </button>
+      </div>
+
+      {activeTestTab === 'vocab' && (
+        <QuizApp 
+           title="Lug'at Testi (Yangi so'zlar)" 
+           questions={vocabTest} 
+           instructions="To'g'ri tarjimani tanlang:" 
+           isVocab={true}
+        />
+      )}
+      {activeTestTab === 'grammar' && (
+        <QuizApp 
+           title="Grammatika Testi" 
+           questions={grammarTest} 
+           instructions="Bo'sh joyga mos so'zni qo'ying:"
+           isVocab={false}
+        />
+      )}
+    </div>
+  );
+};
+
+
+// --- MAIN APP ---
+
+export default function App() {
+  const [activeTab, setActiveTab] = useState('Lug\'atlar');
+
+  const tabs = [
+    { id: 'Lug\'atlar', component: <Flashcards />, icon: '🎴' },
+    { id: 'Matnlar', component: <Dialogues />, icon: '💬' },
+    { id: 'Grammatika', component: <Grammar />, icon: '📖' },
+    { id: 'Mashqlar', component: <FillInBlanks />, icon: '✍️' },
+    { id: 'Testlar', component: <TestsWrapper />, icon: '🎯' }
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#F4F7FC] flex flex-col font-sans text-gray-900 selection:bg-indigo-200">
+      
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-4 py-8 text-center space-y-3 relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+          <h1 className="text-4xl md:text-5xl font-black text-indigo-900 tracking-tight">
+             HSK 3 - Lesson 20: <span className="text-indigo-600">我被他影响了</span>
+          </h1>
+          <h2 className="text-xl font-bold text-gray-500 tracking-wide">
+             Dilfuza Kāng lǎo shī bilan xitoy tilini o'rganmiz
+          </h2>
+        </div>
+        
+        {/* Navigation */}
+        <div className="flex overflow-x-auto justify-center bg-gray-50 border-t border-gray-200 custom-scrollbar">
+          <div className="flex max-w-6xl px-4 w-full justify-between md:justify-center md:space-x-8">
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center space-x-2 px-6 py-5 font-bold text-sm md:text-base uppercase tracking-wider border-b-4 transition-all whitespace-nowrap ${
+                  activeTab === tab.id 
+                    ? 'border-indigo-600 text-indigo-700 bg-indigo-100/50' 
+                    : 'border-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                <span className="text-xl">{tab.icon}</span>
+                <span>{tab.id}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-grow p-4 md:p-8">
+        <div className="max-w-6xl mx-auto">
+           {tabs.find(t => t.id === activeTab)?.component}
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-white py-8 mt-auto border-t border-gray-200">
+        <div className="text-center text-gray-500 text-sm font-bold tracking-wide leading-relaxed">
+          HSK 3 Standard Course - Lesson 20 <br/>
+          &copy; 2026 Dilfuza Kāng lǎo shī (telegram@diffila)
+        </div>
+      </footer>
+
+    </div>
+  );
+}
